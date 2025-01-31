@@ -65,7 +65,12 @@ public record Node(
                     .constraint(arr -> arr.length == 16)
                     .defaultValue(new Double[]{1D, 0D, 0D, 0D, 0D, 1D, 0D, 0D, 0D, 0D, 1D, 0D, 0D, 0D, 0D, 1D})
                     .apply(object);
-            Matrix4d matrix = new Matrix4d(DoubleBuffer.wrap(Arrays.stream(matrixArray).mapToDouble(Double::doubleValue).toArray()));
+            Matrix4d matrix = new Matrix4d(
+                    matrixArray[0], matrixArray[1], matrixArray[2], matrixArray[3],
+                    matrixArray[4], matrixArray[5], matrixArray[6], matrixArray[7],
+                    matrixArray[8], matrixArray[9], matrixArray[10], matrixArray[11],
+                    matrixArray[12], matrixArray[13], matrixArray[14], matrixArray[15]
+            );
             Double[] rotationArray = ElementDeserializer.array("rotation", JsonElement::getAsDouble, Double[]::new)
                     .constraint(arr -> arr.length == 4)
                     .constraint(arr -> {

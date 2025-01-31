@@ -22,7 +22,7 @@ import com.google.gson.JsonParseException;
  */
 public record BufferView(
         int buffer,
-        int byteOffset,
+        Integer byteOffset,
         int byteLength,
         Integer byteStride,
         BufferType target,
@@ -37,7 +37,7 @@ public record BufferView(
                     .required()
                     .constraint(Constraints.nonZero)
                     .apply(object);
-            int byteOffset = ElementDeserializer.integer("byteOffset")
+            Integer byteOffset = ElementDeserializer.integer("byteOffset")
                     .constraint(Constraints.nonZero)
                     .defaultValue(0)
                     .apply(object);
@@ -45,7 +45,7 @@ public record BufferView(
                     .required()
                     .constraint(i -> i >= 1)
                     .apply(object);
-            int byteStride = ElementDeserializer.integer("byteStride")
+            Integer byteStride = ElementDeserializer.integer("byteStride")
                     .constraint(i -> i >= 4)
                     .constraint(i -> i <= 252)
                     .apply(object); // TODO: When two or more accessors use the same buffer view, this field MUST be defined.

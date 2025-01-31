@@ -12,7 +12,6 @@ public record GltfAsset(
     Scene[] scenes,
     int scene,
     Node[] nodes,
-    Mesh[] meshes,
 
     BufferView[] bufferViews,
     Buffer[] buffers
