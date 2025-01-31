@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "ayanami",
+  "version": "${version}",
+  "name": "Ayanami",
+  "description": "glTF loader and renderer for Minecraft",
+  "authors": [],
+  "contact": {},
+  "license": "GPL-3.0",
+  "icon": "assets/ayanami/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.genericbadname.ayanami.client.AyanamiClient"
+    ],
+    "main": [
+      "com.genericbadname.ayanami.Ayanami"
+    ]
+  },
+  "mixins": [
+    "ayanami.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
