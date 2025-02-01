@@ -110,7 +110,9 @@ public class ElementDeserializer<T> {
         return defaultValue;
     }
 
-    public T apply(JsonElement jsonElement) {
+    public T apply(JsonElement inputElement) {
+        JsonElement jsonElement = inputElement.getAsJsonObject().get(element);
+
         if (jsonElement != null) {
             T output = converter.apply(jsonElement);
 

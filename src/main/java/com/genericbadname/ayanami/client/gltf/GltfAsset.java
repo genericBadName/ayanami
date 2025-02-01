@@ -13,10 +13,8 @@ public record GltfAsset(
     Integer scene,
     Node[] nodes,
     Mesh[] meshes,
-
     BufferView[] bufferViews,
     Buffer[] buffers,
-
     Accessor[] accessors
     // animations
     // cameras

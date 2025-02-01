@@ -34,7 +34,7 @@ public record Accessor(
         boolean normalized,
         int count,
         AccessorType type,
-        Double[] max,
+        Double[] max, // TODO: replace with specific JOML datatypes
         Double[] min,
         Sparse sparse,
         String name,
@@ -51,7 +51,7 @@ public record Accessor(
                     .defaultValue(0)
                     .constraint(Constraints.nonZero)
                     .apply(object);
-            ComponentType componentType = ElementDeserializer.enumInt("componentType", i -> ComponentType.values()[i])
+            ComponentType componentType = ElementDeserializer.enumInt("componentType", ComponentType::fromMagic)
                     .required()
                     .apply(object);
             boolean normalized = ElementDeserializer.bool("normalized")

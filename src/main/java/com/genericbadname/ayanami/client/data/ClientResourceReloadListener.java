@@ -45,7 +45,10 @@ public class ClientResourceReloadListener implements SimpleResourceReloadListene
 
     @Override
     public CompletableFuture<Void> apply(Int2ObjectArrayMap<GltfAsset> modelAssets, ResourceManager resourceManager, Profiler profiler, Executor executor) {
-        return CompletableFuture.runAsync(() -> ClientResourceStorage.modelAssets = modelAssets, executor);
+        return CompletableFuture.runAsync(() -> {
+            ClientResourceStorage.modelAssets = modelAssets;
+            Ayanami.LOGGER.info("Loaded {} model assets", modelAssets.size());
+        }, executor);
     }
 
     @Override

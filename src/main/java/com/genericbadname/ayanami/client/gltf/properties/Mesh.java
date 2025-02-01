@@ -9,6 +9,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -57,16 +59,16 @@ public record Mesh(
      * @param extras Application-specific data.
      */
     public record Primitive(
-            EnumMap<PrimitiveAttribute, Integer> attributes,
+            Map<String, Integer> attributes,
             Integer indices,
             Integer material,
             PrimitiveMode mode,
-            EnumMap<PrimitiveAttribute, Integer> targets,
+            Map<String, Integer> targets,
             JsonObject extensions,
             JsonObject extras
     ) {
         private static final Function<JsonElement, Primitive> deserializer = element -> {
-            EnumMap<PrimitiveAttribute, Integer> attributes = ElementDeserializer.map("attributes", PrimitiveAttribute::valueOf, JsonElement::getAsInt, () -> new EnumMap<>(PrimitiveAttribute.class))
+            Map<String, Integer> attributes = ElementDeserializer.map("attributes", s -> s, JsonElement::getAsInt, HashMap::new)
                     .required()
                     .apply(element);
             Integer indices = ElementDeserializer.integer("indices")
@@ -78,7 +80,7 @@ public record Mesh(
             PrimitiveMode mode = ElementDeserializer.enumInt("mode", i -> PrimitiveMode.values()[i])
                     .defaultValue(PrimitiveMode.TRIANGLES)
                     .apply(element);
-            EnumMap<PrimitiveAttribute, Integer> targets = ElementDeserializer.map("targets", PrimitiveAttribute::valueOf, JsonElement::getAsInt, () -> new EnumMap<>(PrimitiveAttribute.class))
+            Map<String, Integer> targets = ElementDeserializer.map("targets", s -> s, JsonElement::getAsInt, HashMap::new)
                     .constraint(m -> !m.isEmpty())
                     .apply(element);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(element);
@@ -86,39 +88,6 @@ public record Mesh(
 
             return new Primitive(attributes, indices, material, mode, targets, extensions, extras);
         };
-    }
-
-    /**
-     * Accessor pairs for attributes. All values with be read as {@link java.lang.Float}
-     */
-    public enum PrimitiveAttribute {
-        /**
-         * Unitless XYZ vertex positions
-         */
-        POSITION(AccessorType.VEC3),
-        /**
-         * Normalized XYZ vertex normals
-         */
-        NORMAL(AccessorType.VEC3),
-        /**
-         * XYZW vertex tangents where the XYZ portion is normalized, and the W component is a sign value (-1 or +1) indicating handedness of the tangent basis
-         */
-        TANGENT(AccessorType.VEC4),
-        /**
-         * ST texture coordinates
-         */
-        TEXCOORD_n(AccessorType.VEC2),
-        /**
-         * RGBA vertex color linear multiplier
-         */
-        COLOR_n(AccessorType.VEC4),
-        JOINTS_n(AccessorType.VEC4),
-        WEIGHTS_n(AccessorType.VEC4);
-
-        public final AccessorType accessorType;
-        PrimitiveAttribute(AccessorType accessorType) {
-            this.accessorType = accessorType;
-        }
     }
 
     /**
