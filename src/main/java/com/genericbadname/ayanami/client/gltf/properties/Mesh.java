@@ -1,10 +1,15 @@
 package com.genericbadname.ayanami.client.gltf.properties;
 
+import com.genericbadname.ayanami.Constraints;
+import com.genericbadname.ayanami.ElementDeserializer;
 import com.genericbadname.ayanami.client.gltf.properties.types.AccessorType;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.joou.UInteger;
+import com.google.gson.JsonParseException;
 
 import java.util.EnumMap;
+import java.util.function.Function;
 
 /**
  * A set of primitives to be rendered. Its global transform is defined by a node that references it.
@@ -17,11 +22,28 @@ import java.util.EnumMap;
  */
 public record Mesh(
     Primitive[] primitives,
-    double[] weights,
+    Double[] weights,
     String name,
     JsonObject extensions,
     JsonObject extras
 ) {
+    public static JsonDeserializer<Mesh> deserializer() throws JsonParseException {
+        return (json, type, context) -> {
+            JsonObject object = json.getAsJsonObject();
+
+            Primitive[] primitives = ElementDeserializer.array("primitives", Primitive.deserializer, Primitive[]::new)
+                    .required()
+                    .constraint(arr -> arr.length >= 1)
+                    .apply(object);
+            Double[] weights = ElementDeserializer.array("weights", JsonElement::getAsDouble, Double[]::new).apply(object);
+            String name = ElementDeserializer.string("name").apply(object);
+            JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
+            JsonObject extras = ElementDeserializer.object("extras").apply(object);
+
+            return new Mesh(primitives, weights, name, extensions, extras);
+        };
+    }
+
     /**
      * Geometry to be rendered with the given material.
      * @param attributes Map of mesh attribute semantics. Attribute -> Accessor.
@@ -36,14 +58,34 @@ public record Mesh(
      */
     public record Primitive(
             EnumMap<PrimitiveAttribute, Integer> attributes,
-            UInteger indices,
-            UInteger material,
+            Integer indices,
+            Integer material,
             PrimitiveMode mode,
-            EnumMap<PrimitiveAttribute, UInteger> targets,
+            EnumMap<PrimitiveAttribute, Integer> targets,
             JsonObject extensions,
             JsonObject extras
     ) {
+        private static final Function<JsonElement, Primitive> deserializer = element -> {
+            EnumMap<PrimitiveAttribute, Integer> attributes = ElementDeserializer.map("attributes", PrimitiveAttribute::valueOf, JsonElement::getAsInt, () -> new EnumMap<>(PrimitiveAttribute.class))
+                    .required()
+                    .apply(element);
+            Integer indices = ElementDeserializer.integer("indices")
+                    .constraint(Constraints.nonZero)
+                    .apply(element);
+            Integer material = ElementDeserializer.integer("material")
+                    .constraint(Constraints.nonZero)
+                    .apply(element);
+            PrimitiveMode mode = ElementDeserializer.enumInt("mode", i -> PrimitiveMode.values()[i])
+                    .defaultValue(PrimitiveMode.TRIANGLES)
+                    .apply(element);
+            EnumMap<PrimitiveAttribute, Integer> targets = ElementDeserializer.map("targets", PrimitiveAttribute::valueOf, JsonElement::getAsInt, () -> new EnumMap<>(PrimitiveAttribute.class))
+                    .constraint(m -> !m.isEmpty())
+                    .apply(element);
+            JsonObject extensions = ElementDeserializer.object("extensions").apply(element);
+            JsonObject extras = ElementDeserializer.object("extras").apply(element);
 
+            return new Primitive(attributes, indices, material, mode, targets, extensions, extras);
+        };
     }
 
     /**

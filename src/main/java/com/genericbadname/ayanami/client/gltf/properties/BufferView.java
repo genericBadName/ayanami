@@ -14,7 +14,7 @@ import com.google.gson.JsonParseException;
  * @param byteLength The length of the bufferView in bytes.
  * @param byteStride The stride, in bytes, between vertex attributes.
  *                  When this is not defined, data is tightly packed.
- *                   When two or more accessors use the same buffer view, this field MUST be defined.
+ *                  When two or more accessors use the same buffer view, this field MUST be defined.
  * @param target The hint representing the intended GPU buffer type to use with this buffer view.
  * @param name The user-defined name of this object.
  * @param extensions JSON object with extension-specific objects.
@@ -22,7 +22,7 @@ import com.google.gson.JsonParseException;
  */
 public record BufferView(
         int buffer,
-        Integer byteOffset,
+        int byteOffset,
         int byteLength,
         Integer byteStride,
         BufferType target,
@@ -37,7 +37,7 @@ public record BufferView(
                     .required()
                     .constraint(Constraints.nonZero)
                     .apply(object);
-            Integer byteOffset = ElementDeserializer.integer("byteOffset")
+            int byteOffset = ElementDeserializer.integer("byteOffset")
                     .constraint(Constraints.nonZero)
                     .defaultValue(0)
                     .apply(object);

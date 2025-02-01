@@ -2,14 +2,10 @@ package com.genericbadname.ayanami.client.gltf.properties;
 
 import com.genericbadname.ayanami.Constraints;
 import com.genericbadname.ayanami.ElementDeserializer;
-import com.genericbadname.ayanami.JsonUtil;
 import com.google.gson.*;
 import org.joml.Matrix4d;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
-
-import java.nio.DoubleBuffer;
-import java.util.Arrays;
 
 /**
  * A node in the node hierarchy.
@@ -94,6 +90,7 @@ public record Node(
             Vector3d translation = new Vector3d(translationArray[0], translationArray[1], translationArray[2]);
             Double[] weights = ElementDeserializer.array("weights", JsonElement::getAsDouble, Double[]::new)
                     .constraint(arr -> arr.length >= 1)
+                    .constraint(arr -> mesh != null)
                     .apply(object);
             String name = ElementDeserializer.string("name").apply(object);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(object);

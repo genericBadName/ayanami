@@ -10,17 +10,30 @@ public record GltfAsset(
     String[] extensionsRequired,
 
     Scene[] scenes,
-    int scene,
+    Integer scene,
     Node[] nodes,
+    Mesh[] meshes,
 
     BufferView[] bufferViews,
-    Buffer[] buffers
+    Buffer[] buffers,
+
+    Accessor[] accessors
+    // animations
+    // cameras
+    // images
+    // materials
+    // samplers
+    // skins
+    // textures
+
 ) {
     public static final Gson ASSET_GSON = new GsonBuilder()
             .registerTypeAdapter(Asset.class, Asset.deserializer())
             .registerTypeAdapter(Scene.class, Scene.deserializer())
             .registerTypeAdapter(Node.class, Node.deserializer())
+            .registerTypeAdapter(Mesh.class, Mesh.deserializer())
             .registerTypeAdapter(BufferView.class, BufferView.deserializer())
             .registerTypeAdapter(Buffer.class, Buffer.deserializer())
+            .registerTypeAdapter(Accessor.class, Accessor.deserializer())
             .create();
 }
