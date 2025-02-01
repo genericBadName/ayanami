@@ -1,5 +1,6 @@
 package com.genericbadname.ayanami;
 
+import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -35,6 +36,10 @@ public class ElementDeserializer<T> {
 
     public static ElementDeserializer<Boolean> bool(String element) {
         return new ElementDeserializer<>(element, JsonElement::getAsBoolean);
+    }
+
+    public static ElementDeserializer<Double> doubleVal(String element) {
+        return new ElementDeserializer<>(element, JsonElement::getAsDouble);
     }
 
     public static ElementDeserializer<JsonObject> object(String element) {
@@ -74,6 +79,10 @@ public class ElementDeserializer<T> {
         return new ElementDeserializer<>(element, e -> enumConverter.apply(e.getAsInt()));
     }
 
+    public static <T> ElementDeserializer<T> defined(String element, Class<T> clazz) {
+        return new ElementDeserializer<>(element, e -> GltfAsset.ASSET_GSON.fromJson(e, clazz));
+    }
+
     public static <T> ElementDeserializer<T> custom(String element, Function<JsonElement, T> converter) {
         return new ElementDeserializer<>(element, converter);
     }
@@ -109,22 +118,4 @@ public class ElementDeserializer<T> {
 
         return defaultValue;
     }
-
-    public T apply(JsonElement inputElement) {
-        JsonElement jsonElement = inputElement.getAsJsonObject().get(element);
-
-        if (jsonElement != null) {
-            T output = converter.apply(jsonElement);
-
-            if (!constraints.test(output)) throw new JsonParseException("Constraints on "+element+" not met!");
-
-            return output;
-        } else if (required) {
-            throw new JsonParseException("Required element "+element+" not found!");
-        }
-
-        return defaultValue;
-    }
-
-
 }

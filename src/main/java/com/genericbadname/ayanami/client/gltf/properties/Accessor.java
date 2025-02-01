@@ -2,6 +2,7 @@ package com.genericbadname.ayanami.client.gltf.properties;
 
 import com.genericbadname.ayanami.Constraints;
 import com.genericbadname.ayanami.ElementDeserializer;
+import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.gltf.properties.types.AccessorType;
 import com.genericbadname.ayanami.client.gltf.properties.types.ComponentType;
 import com.google.gson.JsonDeserializer;
@@ -44,6 +45,7 @@ public record Accessor(
     public static JsonDeserializer<Accessor> deserializer() throws JsonParseException {
         return (json, typeR, context) -> {
             JsonObject object = json.getAsJsonObject();
+
             Integer bufferView = ElementDeserializer.integer("bufferView")
                     .constraint(Constraints.nonZero)
                     .apply(object);
@@ -71,7 +73,7 @@ public record Accessor(
             Double[] min = ElementDeserializer.array("min", JsonElement::getAsDouble, Double[]::new)
                     .constraint(arr -> arr.length == type.length)
                     .apply(object);
-            Sparse sparse = ElementDeserializer.custom("sparse", Sparse.deserializer).apply(object);
+            Sparse sparse = ElementDeserializer.defined("sparse", Sparse.class).apply(object);
             String name = ElementDeserializer.string("name").apply(object);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
             JsonObject extras = ElementDeserializer.object("extras").apply(object);
@@ -94,21 +96,25 @@ public record Accessor(
             JsonObject extensions,
             JsonObject extras
     ) {
-        private static final Function<JsonElement, Sparse> deserializer = element -> {
-            int count = ElementDeserializer.integer("count")
-                    .required()
-                    .apply(element);
-            SparseIndices indices = ElementDeserializer.custom("indices", SparseIndices.deserializer)
-                    .required()
-                    .apply(element);
-            SparseValues values = ElementDeserializer.custom("values", SparseValues.deserializer)
-                    .required()
-                    .apply(element);
-            JsonObject extensions = ElementDeserializer.object("extensions").apply(element);
-            JsonObject extras = ElementDeserializer.object("extras").apply(element);
+        public static JsonDeserializer<Sparse> deserializer() throws JsonParseException {
+            return (json, typeR, context) -> {
+                JsonObject object = json.getAsJsonObject();
 
-            return new Sparse(count, indices, values, extensions, extras);
-        };
+                int count = ElementDeserializer.integer("count")
+                        .required()
+                        .apply(object);
+                SparseIndices indices = ElementDeserializer.defined("indices", SparseIndices.class)
+                        .required()
+                        .apply(object);
+                SparseValues values = ElementDeserializer.defined("values", SparseValues.class)
+                        .required()
+                        .apply(object);
+                JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
+                JsonObject extras = ElementDeserializer.object("extras").apply(object);
+
+                return new Sparse(count, indices, values, extensions, extras);
+            };
+        }
     }
 
     /**
@@ -128,24 +134,28 @@ public record Accessor(
             JsonObject extensions,
             JsonObject extras
     ) {
-        private static final Function<JsonElement, SparseIndices> deserializer = element -> {
-            int bufferView = ElementDeserializer.integer("bufferView")
-                    .required()
-                    .constraint(Constraints.nonZero)
-                    .apply(element);
-            int byteOffset = ElementDeserializer.integer("byteOffset")
-                    .defaultValue(0)
-                    .constraint(Constraints.nonZero)
-                    .apply(element);
-            ComponentType componentType = ElementDeserializer.enumInt("componentType", i -> ComponentType.values()[i])
-                    .required()
-                    .constraint(c -> c.equals(ComponentType.UNSIGNED_BYTE) || c.equals(ComponentType.UNSIGNED_SHORT) || c.equals(ComponentType.UNSIGNED_INT))
-                    .apply(element);
-            JsonObject extensions = ElementDeserializer.object("extensions").apply(element);
-            JsonObject extras = ElementDeserializer.object("extras").apply(element);
+        public static JsonDeserializer<SparseIndices> deserializer() throws JsonParseException {
+            return (json, type, context) -> {
+                JsonObject object = json.getAsJsonObject();
 
-            return new SparseIndices(bufferView, byteOffset, componentType, extensions, extras);
-        };
+                int bufferView = ElementDeserializer.integer("bufferView")
+                        .required()
+                        .constraint(Constraints.nonZero)
+                        .apply(object);
+                int byteOffset = ElementDeserializer.integer("byteOffset")
+                        .defaultValue(0)
+                        .constraint(Constraints.nonZero)
+                        .apply(object);
+                ComponentType componentType = ElementDeserializer.enumInt("componentType", i -> ComponentType.values()[i])
+                        .required()
+                        .constraint(c -> c.equals(ComponentType.UNSIGNED_BYTE) || c.equals(ComponentType.UNSIGNED_SHORT) || c.equals(ComponentType.UNSIGNED_INT))
+                        .apply(object);
+                JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
+                JsonObject extras = ElementDeserializer.object("extras").apply(object);
+
+                return new SparseIndices(bufferView, byteOffset, componentType, extensions, extras);
+            };
+        }
     }
 
     /**
@@ -164,19 +174,23 @@ public record Accessor(
             JsonObject extensions,
             JsonObject extras
     ) {
-        private static final Function<JsonElement, SparseValues> deserializer = element -> {
-            int bufferView = ElementDeserializer.integer("bufferView")
-                    .required()
-                    .constraint(Constraints.nonZero)
-                    .apply(element);
-            int byteOffset = ElementDeserializer.integer("byteOffset")
-                    .defaultValue(0)
-                    .constraint(Constraints.nonZero)
-                    .apply(element);
-            JsonObject extensions = ElementDeserializer.object("extensions").apply(element);
-            JsonObject extras = ElementDeserializer.object("extras").apply(element);
+        public static JsonDeserializer<SparseValues> deserializer() throws JsonParseException {
+            return (json, type, context) -> {
+                JsonObject object = json.getAsJsonObject();
 
-            return new SparseValues(bufferView, byteOffset, extensions, extras);
-        };
+                int bufferView = ElementDeserializer.integer("bufferView")
+                        .required()
+                        .constraint(Constraints.nonZero)
+                        .apply(object);
+                int byteOffset = ElementDeserializer.integer("byteOffset")
+                        .defaultValue(0)
+                        .constraint(Constraints.nonZero)
+                        .apply(object);
+                JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
+                JsonObject extras = ElementDeserializer.object("extras").apply(object);
+
+                return new SparseValues(bufferView, byteOffset, extensions, extras);
+            };
+        }
     }
 }

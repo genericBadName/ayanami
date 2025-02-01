@@ -2,16 +2,14 @@ package com.genericbadname.ayanami.client.gltf.properties;
 
 import com.genericbadname.ayanami.Constraints;
 import com.genericbadname.ayanami.ElementDeserializer;
-import com.genericbadname.ayanami.client.gltf.properties.types.AccessorType;
+import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * A set of primitives to be rendered. Its global transform is defined by a node that references it.
@@ -33,7 +31,7 @@ public record Mesh(
         return (json, type, context) -> {
             JsonObject object = json.getAsJsonObject();
 
-            Primitive[] primitives = ElementDeserializer.array("primitives", Primitive.deserializer, Primitive[]::new)
+            Primitive[] primitives = ElementDeserializer.array("primitives", e -> GltfAsset.ASSET_GSON.fromJson(e, Primitive.class), Primitive[]::new)
                     .required()
                     .constraint(arr -> arr.length >= 1)
                     .apply(object);
@@ -67,27 +65,31 @@ public record Mesh(
             JsonObject extensions,
             JsonObject extras
     ) {
-        private static final Function<JsonElement, Primitive> deserializer = element -> {
-            Map<String, Integer> attributes = ElementDeserializer.map("attributes", s -> s, JsonElement::getAsInt, HashMap::new)
-                    .required()
-                    .apply(element);
-            Integer indices = ElementDeserializer.integer("indices")
-                    .constraint(Constraints.nonZero)
-                    .apply(element);
-            Integer material = ElementDeserializer.integer("material")
-                    .constraint(Constraints.nonZero)
-                    .apply(element);
-            PrimitiveMode mode = ElementDeserializer.enumInt("mode", i -> PrimitiveMode.values()[i])
-                    .defaultValue(PrimitiveMode.TRIANGLES)
-                    .apply(element);
-            Map<String, Integer> targets = ElementDeserializer.map("targets", s -> s, JsonElement::getAsInt, HashMap::new)
-                    .constraint(m -> !m.isEmpty())
-                    .apply(element);
-            JsonObject extensions = ElementDeserializer.object("extensions").apply(element);
-            JsonObject extras = ElementDeserializer.object("extras").apply(element);
+        public static JsonDeserializer<Primitive> deserializer() throws JsonParseException {
+            return (json, type, context) -> {
+                JsonObject object = json.getAsJsonObject();
 
-            return new Primitive(attributes, indices, material, mode, targets, extensions, extras);
-        };
+                Map<String, Integer> attributes = ElementDeserializer.map("attributes", s -> s, JsonElement::getAsInt, HashMap::new)
+                        .required()
+                        .apply(object);
+                Integer indices = ElementDeserializer.integer("indices")
+                        .constraint(Constraints.nonZero)
+                        .apply(object);
+                Integer material = ElementDeserializer.integer("material")
+                        .constraint(Constraints.nonZero)
+                        .apply(object);
+                PrimitiveMode mode = ElementDeserializer.enumInt("mode", i -> PrimitiveMode.values()[i])
+                        .defaultValue(PrimitiveMode.TRIANGLES)
+                        .apply(object);
+                Map<String, Integer> targets = ElementDeserializer.map("targets", s -> s, JsonElement::getAsInt, HashMap::new)
+                        .constraint(m -> !m.isEmpty())
+                        .apply(object);
+                JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
+                JsonObject extras = ElementDeserializer.object("extras").apply(object);
+
+                return new Primitive(attributes, indices, material, mode, targets, extensions, extras);
+            };
+        }
     }
 
     /**

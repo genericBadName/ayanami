@@ -25,6 +25,7 @@ public record Asset(
     public static JsonDeserializer<Asset> deserializer() throws JsonParseException {
         return (json, type, context) -> {
             JsonObject object = json.getAsJsonObject();
+
             String version = ElementDeserializer.string("version")
                     .required()
                     .apply(object); // TODO: check semver
