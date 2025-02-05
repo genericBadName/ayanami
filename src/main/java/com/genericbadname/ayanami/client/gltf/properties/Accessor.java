@@ -1,16 +1,13 @@
 package com.genericbadname.ayanami.client.gltf.properties;
 
-import com.genericbadname.ayanami.Constraints;
-import com.genericbadname.ayanami.ElementDeserializer;
-import com.genericbadname.ayanami.client.gltf.GltfAsset;
+import com.genericbadname.ayanami.client.gson.Constraints;
+import com.genericbadname.ayanami.client.gson.ElementDeserializer;
 import com.genericbadname.ayanami.client.gltf.properties.types.AccessorType;
 import com.genericbadname.ayanami.client.gltf.properties.types.ComponentType;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-
-import java.util.function.Function;
 
 /**
  * A typed view into a buffer view that contains raw binary data.
@@ -68,10 +65,10 @@ public record Accessor(
                     .required()
                     .apply(object);
             Double[] max = ElementDeserializer.array("max", JsonElement::getAsDouble, Double[]::new)
-                    .constraint(arr -> arr.length == type.length)
+                    .constraint(arr -> arr.length == type.components)
                     .apply(object);
             Double[] min = ElementDeserializer.array("min", JsonElement::getAsDouble, Double[]::new)
-                    .constraint(arr -> arr.length == type.length)
+                    .constraint(arr -> arr.length == type.components)
                     .apply(object);
             Sparse sparse = ElementDeserializer.defined("sparse", Sparse.class).apply(object);
             String name = ElementDeserializer.string("name").apply(object);

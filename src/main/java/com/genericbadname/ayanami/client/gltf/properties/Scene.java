@@ -1,7 +1,7 @@
 package com.genericbadname.ayanami.client.gltf.properties;
 
-import com.genericbadname.ayanami.Constraints;
-import com.genericbadname.ayanami.ElementDeserializer;
+import com.genericbadname.ayanami.client.gson.Constraints;
+import com.genericbadname.ayanami.client.gson.ElementDeserializer;
 import com.google.gson.*;
 
 /**

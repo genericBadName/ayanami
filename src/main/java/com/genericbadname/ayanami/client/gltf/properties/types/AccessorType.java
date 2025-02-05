@@ -9,8 +9,8 @@ public enum AccessorType {
     MAT3(9),
     MAT4(16);
 
-    public final int length;
-    AccessorType(int length) {
-        this.length = length;
+    public final int components;
+    AccessorType(int components) {
+        this.components = components;
     }
 }

@@ -22,8 +22,8 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    implementation "org.jooq:joou:${project.joou_version}"
-    shadow "org.jooq:joou:${project.joou_version}"
+    implementation "com.github.ooxi:jdatauri:${project.jdatauri_version}"
+    shadow "com.github.ooxi:jdatauri:${project.jdatauri_version}"
 }
 
 processResources {

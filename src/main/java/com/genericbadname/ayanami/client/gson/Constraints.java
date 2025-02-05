@@ -1,4 +1,4 @@
-package com.genericbadname.ayanami;
+package com.genericbadname.ayanami.client.gson;
 
 import java.util.Arrays;
 import java.util.HashSet;

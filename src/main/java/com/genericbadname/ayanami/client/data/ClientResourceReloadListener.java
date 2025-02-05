@@ -2,8 +2,10 @@ package com.genericbadname.ayanami.client.data;
 
 import com.genericbadname.ayanami.Ayanami;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
+import com.genericbadname.ayanami.client.processing.AssetProcesser;
 import com.google.gson.stream.JsonReader;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.fabricmc.fabric.api.resource.SimpleResourceReloadListener;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
@@ -48,6 +50,11 @@ public class ClientResourceReloadListener implements SimpleResourceReloadListene
         return CompletableFuture.runAsync(() -> {
             ClientResourceStorage.modelAssets = modelAssets;
             Ayanami.LOGGER.info("Loaded {} model assets", modelAssets.size());
+
+            for (Int2ObjectMap.Entry<GltfAsset> entry : modelAssets.int2ObjectEntrySet()) {
+                new AssetProcesser(entry.getValue()).process();
+            }
+            Ayanami.LOGGER.info("Processed {} model assets", modelAssets.size());
         }, executor);
     }
 

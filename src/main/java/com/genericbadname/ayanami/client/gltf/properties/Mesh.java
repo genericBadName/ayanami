@@ -1,8 +1,9 @@
 package com.genericbadname.ayanami.client.gltf.properties;
 
-import com.genericbadname.ayanami.Constraints;
-import com.genericbadname.ayanami.ElementDeserializer;
+import com.genericbadname.ayanami.client.gson.Constraints;
+import com.genericbadname.ayanami.client.gson.ElementDeserializer;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
+import com.genericbadname.ayanami.client.gltf.properties.types.PrimitiveMode;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -90,18 +91,5 @@ public record Mesh(
                 return new Primitive(attributes, indices, material, mode, targets, extensions, extras);
             };
         }
-    }
-
-    /**
-     * Primitive topology types.
-     */
-    public enum PrimitiveMode {
-        POINTS,
-        LINES,
-        LINE_LOOP,
-        LINE_STRIP,
-        TRIANGLES,
-        TRIANGLE_STRIP,
-        TRIANGLE_FAN
     }
 }

@@ -1,6 +1,6 @@
 package com.genericbadname.ayanami.client.gltf.properties;
 
-import com.genericbadname.ayanami.ElementDeserializer;
+import com.genericbadname.ayanami.client.gson.ElementDeserializer;
 import com.genericbadname.ayanami.client.gltf.properties.types.SamplerFilter;
 import com.genericbadname.ayanami.client.gltf.properties.types.WrapMode;
 import com.google.gson.JsonDeserializer;

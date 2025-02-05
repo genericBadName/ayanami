@@ -1,4 +1,4 @@
-package com.genericbadname.ayanami;
+package com.genericbadname.ayanami.client.gson;
 
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.google.gson.JsonArray;
