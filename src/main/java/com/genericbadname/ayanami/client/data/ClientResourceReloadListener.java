@@ -3,6 +3,7 @@ package com.genericbadname.ayanami.client.data;
 import com.genericbadname.ayanami.Ayanami;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.processing.AssetProcesser;
+import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
 import com.google.gson.stream.JsonReader;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -27,7 +28,10 @@ public class ClientResourceReloadListener implements SimpleResourceReloadListene
                         .map(entry -> CompletableFuture.supplyAsync(() -> new OutputDataPair(entry.getKey(), loadAsset(entry.getKey(), entry.getValue())), executor))
                         .map(CompletableFuture::join)
                         .filter(odp -> odp.asset != null)
-                        .collect(Collectors.toMap((odp) -> odp.identifier.hashCode(), OutputDataPair::asset, (t1, t2) -> t1, Int2ObjectArrayMap::new)), executor);
+                        .collect(Collectors.toMap((odp) -> {
+                            String newPath = odp.identifier.getPath().replace("rei/", "");
+                            return new Identifier(odp.identifier.getNamespace(), newPath).hashCode();
+                        }, OutputDataPair::asset, (t1, t2) -> t1, Int2ObjectArrayMap::new)), executor);
     }
 
     private static GltfAsset loadAsset(Identifier id, Resource resource) {
@@ -51,7 +55,8 @@ public class ClientResourceReloadListener implements SimpleResourceReloadListene
             Ayanami.LOGGER.info("Loaded {} model assets", modelAssets.size());
 
             for (Int2ObjectMap.Entry<GltfAsset> entry : modelAssets.int2ObjectEntrySet()) {
-                new AssetProcesser(entry.getValue()).process();
+                ProcessedAsset asset = new AssetProcesser(entry.getValue()).process();
+                if (asset != null) ClientResourceStorage.modelAssets.put(entry.getIntKey(), asset);
             }
 
             Ayanami.LOGGER.info("Processed {} model assets", modelAssets.size());

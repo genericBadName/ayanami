@@ -3,6 +3,7 @@ package com.genericbadname.ayanami.client.processing;
 import com.genericbadname.ayanami.MatrixUtil;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.gltf.properties.*;
+import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
 import com.genericbadname.ayanami.client.processing.processed.ProcessedMesh;
 import com.genericbadname.ayanami.client.processing.processed.ProcessedPrimitive;
 import com.genericbadname.ayanami.client.processing.processed.Vertex;
@@ -22,54 +23,54 @@ public class AssetProcesser {
     private final GltfAsset model;
     private Scene activeScene;
     private Int2ObjectMap<ByteBuffer> loadedBuffers;
-    private ObjectList<ProcessedMesh> processedMeshes;
+    private ProcessedMesh[] processedMeshes;
+    private int[] roots;
 
     public AssetProcesser(GltfAsset model) {
         this.model = model;
     }
 
-    public void process() {
-        if (model.scenes() == null) return;
-        if (model.scene() == null) return;
+    public ProcessedAsset process() {
+        if (model.scenes() == null) return null;
+        if (model.scene() == null) return null;
 
         activeScene = model.scenes()[model.scene()];
         loadedBuffers = new Int2ObjectArrayMap<>();
-        processedMeshes = new ObjectArrayList<>();
-        traverseRootNodes();
+        processAll();
+
+        return new ProcessedAsset(processedMeshes, roots, true);
     }
 
     private ByteBuffer getBuffer(int index) {
         if (!loadedBuffers.containsKey(index)) {
             byte[] data = DataUri.parse(model.buffers()[index].uri(), Charset.defaultCharset()).getData();
-            ByteBuffer buffer = ByteBuffer.allocateDirect(data.length).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+
             loadedBuffers.put(index, buffer);
         }
 
         return loadedBuffers.get(index);
     }
 
-    private void traverseRootNodes() {
+    private void processAll() {
         if (activeScene == null) return;
         if (activeScene.nodes() == null) return;
+        if (model.nodes() == null) return;
 
-        for (int i : activeScene.nodes()) {
-            traverseChildren(model.nodes()[i], -1);
+        roots = Arrays.stream(activeScene.nodes()).mapToInt(Integer::intValue).toArray();
+        processedMeshes = new ProcessedMesh[model.nodes().length];
+
+        for (int i=0;i<processedMeshes.length;i++) {
+            processMesh(model.nodes()[i], i);
         }
     }
 
-    private void traverseChildren(Node self, int parent) {
-        processMesh(self, parent);
-        int selfIndex = processedMeshes.size() - 1;
-
-        if (self.children() != null) {
-            for (int child : self.children()) { // I don't like this.
-                traverseChildren(model.nodes()[child], selfIndex);
-            }
+    private void processMesh(Node self, int selfIndex) {
+        if (self.mesh() == null) {
+            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), new ObjectArrayList<>(), MatrixUtil.identity());
+            return;
         }
-    }
 
-    private void processMesh(Node self, int parent) {
-        if (self.mesh() == null) return;
         Mesh mesh = model.meshes()[self.mesh()];
         ObjectList<ProcessedPrimitive> processedPrimitives = new ObjectArrayList<>();
 
@@ -86,15 +87,17 @@ public class AssetProcesser {
                 // add processed attributes
                 for (int e = 0; e < accessor.count(); e++) {
                     double[] components = new double[accessor.count()];
-                    int initialPosition = viewBuffer.position();
+                    int valueStart = viewBuffer.position();
                     for (int c = 0; c < accessor.type().components; c++) {
                         components[c] = accessor.componentType().converter.apply(viewBuffer).doubleValue();
-                        if (view.byteStride() != null) viewBuffer.position(initialPosition + view.byteStride());
                     }
+
+                    if (view.byteStride() != null) viewBuffer.position(valueStart + view.byteStride());
                     processedAttributes.add(attribute.getKey(), components);
                 }
             }
 
+            // TODO: fix vertices not rendering in the correct order
             // process indices
             if (primitive.indices() != null) {
                 // access indices, to determine which of the process vertices to use
@@ -121,16 +124,16 @@ public class AssetProcesser {
 
         // add processed mesh
         if (self.matrix() != null) {
-            processedMeshes.add(new ProcessedMesh(parent, processedPrimitives, self.matrix()));
+            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, self.matrix());
         } else if (self.translation() != null || self.rotation() != null || self.scale() != null) {
-            Matrix4d transform = new Matrix4d();
-            if (self.translation() != null) transform.mul(MatrixUtil.translation(self.translation()));
-            if (self.rotation() != null) transform.mul(MatrixUtil.rotation(self.rotation()));
-            if (self.scale() != null) transform.mul(MatrixUtil.scale(self.scale()));
+            Matrix4d translation = (self.translation() != null) ? MatrixUtil.translation(self.translation()) : MatrixUtil.identity();
+            Matrix4d rotation = (self.rotation() != null) ? MatrixUtil.rotation(self.rotation()) : MatrixUtil.identity();
+            Matrix4d scale = (self.scale() != null) ? MatrixUtil.scale(self.scale()) : MatrixUtil.identity();
+            Matrix4d transform = translation.mul(rotation).mul(scale);
 
-            processedMeshes.add(new ProcessedMesh(parent, processedPrimitives, transform));
+            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, transform);
         } else {
-            processedMeshes.add(new ProcessedMesh(parent, processedPrimitives, MatrixUtil.identity()));
+            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, MatrixUtil.identity());
         }
     }
 }

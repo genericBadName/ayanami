@@ -5,12 +5,12 @@ import org.joml.Matrix4d;
 
 /**
  * Fully unpacked mesh, containing shapes for rendering
- * @param parent Parent transform
+ * @param children Children meshes
  * @param processedPrimitives All processed primitive shapes
  * @param transform Local transformation matrix
  */
 public record ProcessedMesh(
-        int parent,
+        Integer[] children,
         ObjectList<ProcessedPrimitive> processedPrimitives,
         Matrix4d transform
 ) {
