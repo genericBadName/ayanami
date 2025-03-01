@@ -1,7 +1,8 @@
 package com.genericbadname.ayanami.client;
 
 import com.genericbadname.ayanami.Ayanami;
-import com.genericbadname.ayanami.client.data.ClientResourceReloadListener;
+import com.genericbadname.ayanami.client.data.DisplaySettingsReloader;
+import com.genericbadname.ayanami.client.data.GltfAssetReloader;
 import com.genericbadname.ayanami.client.renderer.ChainsawRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
@@ -12,7 +13,9 @@ public class AyanamiClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new ClientResourceReloadListener());
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new GltfAssetReloader());
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new DisplaySettingsReloader());
+
         BuiltinItemRendererRegistry.INSTANCE.register(Ayanami.CHAINSAW, new ChainsawRenderer());
     }
 }

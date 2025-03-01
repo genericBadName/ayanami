@@ -23,4 +23,10 @@ public class Ayanami implements ModInitializer {
     public static Identifier asID(String path) {
         return Identifier.of(MOD_ID, path);
     }
+
+    public static Identifier trim(Identifier id, String end) {
+        String str = id.getPath().replace(end, "");
+
+        return new Identifier(id.getNamespace(), str);
+    }
 }

@@ -2,8 +2,11 @@ package com.genericbadname.ayanami.client.renderer;
 
 import com.genericbadname.ayanami.Ayanami;
 
-public class ChainsawRenderer extends ReiRenderer {
+public class ChainsawRenderer extends ReiItemRenderer {
     public ChainsawRenderer() {
-        super(Ayanami.asID("chainsaw.gltf"));
+        super(
+                Ayanami.asID("rei/chainsaw"),
+                Ayanami.asID("textures/rei/chainsaw.png")
+        );
     }
 }
