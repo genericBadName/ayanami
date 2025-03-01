@@ -1,6 +1,5 @@
 package com.genericbadname.ayanami.client.processing;
 
-import com.genericbadname.ayanami.MatrixUtil;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.gltf.properties.*;
 import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
@@ -25,6 +24,8 @@ public class AssetProcesser {
     private Int2ObjectMap<ByteBuffer> loadedBuffers;
     private ProcessedMesh[] processedMeshes;
     private int[] roots;
+
+    private static final Matrix4d IDENTITY = new Matrix4d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 
     public AssetProcesser(GltfAsset model) {
         this.model = model;
@@ -67,7 +68,7 @@ public class AssetProcesser {
 
     private void processMesh(Node self, int selfIndex) {
         if (self.mesh() == null) {
-            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), new ObjectArrayList<>(), MatrixUtil.identity());
+            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), new ObjectArrayList<>(), IDENTITY);
             return;
         }
 
@@ -97,7 +98,6 @@ public class AssetProcesser {
                 }
             }
 
-            // TODO: fix vertices not rendering in the correct order
             // process indices
             if (primitive.indices() != null) {
                 // access indices, to determine which of the process vertices to use
@@ -123,17 +123,8 @@ public class AssetProcesser {
         }
 
         // add processed mesh
-        if (self.matrix() != null) {
-            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, self.matrix());
-        } else if (self.translation() != null || self.rotation() != null || self.scale() != null) {
-            Matrix4d translation = (self.translation() != null) ? MatrixUtil.translation(self.translation()) : MatrixUtil.identity();
-            Matrix4d rotation = (self.rotation() != null) ? MatrixUtil.rotation(self.rotation()) : MatrixUtil.identity();
-            Matrix4d scale = (self.scale() != null) ? MatrixUtil.scale(self.scale()) : MatrixUtil.identity();
-            Matrix4d transform = translation.mul(rotation).mul(scale);
+        Matrix4d transform = new Matrix4d().translationRotateScale(self.translation(), self.rotation(), self.scale());
 
-            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, transform);
-        } else {
-            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, MatrixUtil.identity());
-        }
+        processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, transform);
     }
 }

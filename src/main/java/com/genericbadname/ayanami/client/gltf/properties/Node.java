@@ -85,7 +85,7 @@ public record Node(
             Vector3d scale = new Vector3d(scaleArray[0], scaleArray[1], scaleArray[2]);
             Double[] translationArray = ElementDeserializer.array("translation", JsonElement::getAsDouble, Double[]::new)
                     .constraint(arr -> arr.length == 3)
-                    .defaultValue(new Double[]{1D, 1D, 1D})
+                    .defaultValue(new Double[]{0D, 0D, 0D})
                     .apply(object);
             Vector3d translation = new Vector3d(translationArray[0], translationArray[1], translationArray[2]);
             Double[] weights = ElementDeserializer.array("weights", JsonElement::getAsDouble, Double[]::new)

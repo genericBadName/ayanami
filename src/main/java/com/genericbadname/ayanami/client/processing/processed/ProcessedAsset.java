@@ -34,7 +34,7 @@ public class ProcessedAsset {
     }
 
     private void recursiveRender(ProcessedMesh self, Matrix4f parentTransform, Tessellator tessellator) {
-        Matrix4f transform = parentTransform.mul(new Matrix4f(self.transform()));
+        Matrix4f transform = parentTransform.mulAffine(new Matrix4f(self.transform()), new Matrix4f());
         BufferBuilder buffer = tessellator.getBuffer();
 
         for (ProcessedPrimitive primitive : self.processedPrimitives()) {
