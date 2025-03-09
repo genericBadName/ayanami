@@ -1,5 +1,6 @@
 package com.genericbadname.ayanami.client.processing;
 
+import com.genericbadname.ayanami.client.data.ClientResourceStorage;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.gltf.properties.*;
 import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
@@ -11,6 +12,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import net.minecraft.util.Identifier;
 import org.joml.Matrix4d;
 
 import java.nio.ByteBuffer;
@@ -19,6 +21,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 
 public class AssetProcesser {
+    private final Identifier modelLocation;
     private final GltfAsset model;
     private Scene activeScene;
     private Int2ObjectMap<ByteBuffer> loadedBuffers;
@@ -27,7 +30,8 @@ public class AssetProcesser {
 
     private static final Matrix4d IDENTITY = new Matrix4d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 
-    public AssetProcesser(GltfAsset model) {
+    public AssetProcesser(Identifier modelLocation, GltfAsset model) {
+        this.modelLocation = modelLocation;
         this.model = model;
     }
 
@@ -44,8 +48,17 @@ public class AssetProcesser {
 
     private ByteBuffer getBuffer(int index) {
         if (!loadedBuffers.containsKey(index)) {
-            byte[] data = DataUri.parse(model.buffers()[index].uri(), Charset.defaultCharset()).getData();
-            ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer buffer = null;
+            String uri = model.buffers()[index].uri();
+            
+            if (uri.startsWith("data:application/octet-stream")) {
+                buffer = ByteBuffer.wrap(DataUri.parse(uri, Charset.defaultCharset()).getData()).order(ByteOrder.LITTLE_ENDIAN);
+            } else if (uri.endsWith(".bin")) {
+                String path = modelLocation.getPath();
+                buffer = ClientResourceStorage.getExternalBuffer(new Identifier(modelLocation.getNamespace(), path.substring(0, path.lastIndexOf("/") + 1) + uri));
+            }
+
+            if (buffer == null) throw new RuntimeException("Tried loading "+modelLocation+" but a loaded buffer was not found!"); // just in case something weird happens
 
             loadedBuffers.put(index, buffer);
         }
@@ -83,7 +96,7 @@ public class AssetProcesser {
                 // access data from the buffer
                 Accessor accessor = model.accessors()[attribute.getValue()];
                 BufferView view = model.bufferViews()[accessor.bufferView()];
-                ByteBuffer viewBuffer = getBuffer(view.buffer()).position(view.byteOffset());
+                ByteBuffer viewBuffer = getBuffer(view.buffer()).position(view.byteOffset() + accessor.byteOffset());
 
                 // add processed attributes
                 for (int e = 0; e < accessor.count(); e++) {
@@ -103,7 +116,7 @@ public class AssetProcesser {
                 // access indices, to determine which of the process vertices to use
                 Accessor accessor = model.accessors()[primitive.indices()];
                 BufferView view = model.bufferViews()[accessor.bufferView()];
-                ByteBuffer viewBuffer = getBuffer(view.buffer()).position(view.byteOffset());
+                ByteBuffer viewBuffer = getBuffer(view.buffer()).position(view.byteOffset() + accessor.byteOffset());
 
                 List<Vertex> vertices = new ArrayList<>();
                 for (int i = 0; i < accessor.count(); i++) {
@@ -113,7 +126,7 @@ public class AssetProcesser {
 
                 processedPrimitives.add(new ProcessedPrimitive(vertices, primitive.mode()));
             } else {
-                List<Vertex> vertices = new ArrayList<>(); // TODO: handle possible misformatting from unequal list sizes
+                List<Vertex> vertices = new ArrayList<>();
                 for (int i = 0; i < processedAttributes.positions().size(); i++) {
                     vertices.add(new Vertex(processedAttributes.positions().get(i), processedAttributes.normals().get(i), processedAttributes.texcoords().get(i)));
                 }

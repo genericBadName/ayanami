@@ -1,5 +1,6 @@
 package com.genericbadname.ayanami.client.renderer;
 
+import com.genericbadname.ayanami.Ayanami;
 import com.genericbadname.ayanami.client.data.ClientResourceStorage;
 import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -14,13 +15,14 @@ import org.joml.Matrix4f;
 import java.util.EnumMap;
 
 public abstract class ReiItemRenderer implements BuiltinItemRendererRegistry.DynamicItemRenderer {
-    private final Identifier modelLocation;
+    private final Identifier modelId;
     private final Identifier textureLocation;
     private ProcessedAsset model;
     private EnumMap<ModelTransformationMode, Matrix4f> displaySettings;
+    private boolean safeToRender;
 
     public ReiItemRenderer(Identifier modelId, Identifier textureLocation) {
-        this.modelLocation = modelId;
+        this.modelId = modelId;
         this.textureLocation = textureLocation;
 
         if (modelId == null) throw new IllegalArgumentException("modelId must not be null!");
@@ -29,8 +31,7 @@ public abstract class ReiItemRenderer implements BuiltinItemRendererRegistry.Dyn
 
     @Override
     public final void render(ItemStack itemStack, ModelTransformationMode modelTransformationMode, MatrixStack matrices, VertexConsumerProvider vcp, int light, int overlay) {
-        if (model == null) model = ClientResourceStorage.getModel(modelLocation);
-        if (displaySettings == null) displaySettings = ClientResourceStorage.getDisplaySettings(modelLocation);
+        if (!safeToRender) return;
 
         matrices.push();
         Matrix4f transformationMatrix = matrices.peek().getPositionMatrix();
@@ -51,5 +52,17 @@ public abstract class ReiItemRenderer implements BuiltinItemRendererRegistry.Dyn
         // render and cleanup
         model.renderFromRoots(transformationMatrix);
         matrices.pop();
+    }
+
+    public void reload() {
+        model = ClientResourceStorage.getModel(modelId);
+        displaySettings = ClientResourceStorage.getDisplaySettings(modelId);
+
+        if (model != null && displaySettings != null) {
+            safeToRender = true;
+        } else {
+            safeToRender = false;
+            Ayanami.LOGGER.error("Model {} failed to load due to missing components", modelId);
+        }
     }
 }

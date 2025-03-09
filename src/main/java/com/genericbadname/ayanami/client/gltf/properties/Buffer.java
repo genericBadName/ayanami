@@ -25,7 +25,7 @@ public record Buffer(
     public static JsonDeserializer<Buffer> deserializer() throws JsonParseException {
         return (json, type, context) -> {
             JsonObject object = json.getAsJsonObject();
-            String uri = ElementDeserializer.string("uri").apply(object); // TODO: check iri-format
+            String uri = ElementDeserializer.string("uri").apply(object);
             int byteLength = ElementDeserializer.integer("byteLength")
                     .required()
                     .constraint(i -> i >= 1)

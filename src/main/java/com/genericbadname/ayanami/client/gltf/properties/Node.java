@@ -56,7 +56,8 @@ public record Node(
                     .apply(object);
             Integer skin = ElementDeserializer.integer("skin")
                     .constraint(Constraints.nonZero)
-                    .apply(object); // TODO: ensure that mesh is also defined if skin is
+                    .constraint(integer -> mesh != null)
+                    .apply(object);
             Double[] matrixArray = ElementDeserializer.array("matrix", JsonElement::getAsDouble, Double[]::new)
                     .constraint(arr -> arr.length == 16)
                     .defaultValue(new Double[]{1D, 0D, 0D, 0D, 0D, 1D, 0D, 0D, 0D, 0D, 1D, 0D, 0D, 0D, 0D, 1D})

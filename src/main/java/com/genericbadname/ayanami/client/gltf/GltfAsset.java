@@ -15,12 +15,11 @@ public record GltfAsset(
     BufferView[] bufferViews,
     Buffer[] buffers,
     Accessor[] accessors,
-    ImageData[] images,
+    ImageData[] images, // TODO: implement material/dynamic image functionality
     Material[] materials,
     Sampler[] samplers,
     Texture[] textures
     // animations
-    // cameras
     // skins
 
 ) {

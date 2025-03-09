@@ -48,7 +48,7 @@ public record BufferView(
             Integer byteStride = ElementDeserializer.integer("byteStride")
                     .constraint(i -> i >= 4)
                     .constraint(i -> i <= 252)
-                    .apply(object); // TODO: When two or more accessors use the same buffer view, this field MUST be defined.
+                    .apply(object);
             BufferType target = ElementDeserializer.enumInt("target", BufferType::fromMagic).apply(object);
             String name = ElementDeserializer.string("name").apply(object);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(object);

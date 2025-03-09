@@ -28,10 +28,10 @@ public record Asset(
 
             String version = ElementDeserializer.string("version")
                     .required()
-                    .apply(object); // TODO: check semver
+                    .apply(object);
             String copyright = ElementDeserializer.string("copyright").apply(object);
             String generator = ElementDeserializer.string("generator").apply(object);
-            String minVersion = ElementDeserializer.string("minVersion").apply(object); // TODO: check semver against other version
+            String minVersion = ElementDeserializer.string("minVersion").apply(object);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
             JsonObject extras = ElementDeserializer.object("extras").apply(object);
 

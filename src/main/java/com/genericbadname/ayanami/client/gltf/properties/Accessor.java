@@ -32,7 +32,7 @@ public record Accessor(
         boolean normalized,
         int count,
         AccessorType type,
-        Double[] max, // TODO: replace with specific JOML datatypes
+        Double[] max,
         Double[] min,
         Sparse sparse,
         String name,
@@ -86,9 +86,9 @@ public record Accessor(
      * @param extensions JSON object with extension-specific objects.
      * @param extras Application-specific data.
      */
-    public record Sparse(
+    public record Sparse( // TODO: implement sparse accessor functionality
             int count,
-            SparseIndices indices, // TODO: indices must strictly increase...?
+            SparseIndices indices,
             SparseValues values,
             JsonObject extensions,
             JsonObject extras
