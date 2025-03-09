@@ -18,9 +18,9 @@ public record GltfAsset(
     ImageData[] images, // TODO: implement material/dynamic image functionality
     Material[] materials,
     Sampler[] samplers,
-    Texture[] textures
-    // animations
-    // skins
+    Texture[] textures,
+    Skin[] skins, // TODO: implement skinning/animation functionality
+    Animation[] animations
 
 ) {
     public static final Gson ASSET_GSON = new GsonBuilder()
@@ -43,5 +43,10 @@ public record GltfAsset(
             .registerTypeAdapter(Material.NormalTextureInfo.class, Material.NormalTextureInfo.deserializer())
             .registerTypeAdapter(Material.OcclusionTextureInfo.class, Material.OcclusionTextureInfo.deserializer())
             .registerTypeAdapter(ImageData.class, ImageData.deserializer())
+            .registerTypeAdapter(Skin.class, Skin.deserializer())
+            .registerTypeAdapter(Animation.class, Animation.deserializer())
+            .registerTypeAdapter(Animation.Channel.class, Animation.Channel.deserializer())
+            .registerTypeAdapter(Animation.Target.class, Animation.Target.deserializer())
+            .registerTypeAdapter(Animation.Sampler.class, Animation.Sampler.deserializer())
             .create();
 }

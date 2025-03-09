@@ -35,10 +35,10 @@ public record BufferView(
             JsonObject object = json.getAsJsonObject();
             int buffer = ElementDeserializer.integer("buffer")
                     .required()
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .apply(object);
             int byteOffset = ElementDeserializer.integer("byteOffset")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .defaultValue(0)
                     .apply(object);
             int byteLength = ElementDeserializer.integer("byteLength")

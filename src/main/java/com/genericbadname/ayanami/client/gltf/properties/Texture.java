@@ -25,10 +25,10 @@ public record Texture(
         return (json, type, context) -> {
             JsonObject object = json.getAsJsonObject();
             Integer sampler = ElementDeserializer.integer("sampler")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .apply(object);
             Integer source = ElementDeserializer.integer("source")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .apply(object);
             String name = ElementDeserializer.string("name").apply(object);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(object);

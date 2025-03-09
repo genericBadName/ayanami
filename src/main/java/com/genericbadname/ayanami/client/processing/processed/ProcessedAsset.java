@@ -12,12 +12,10 @@ import org.joml.Matrix4f;
 public class ProcessedAsset {
     private final ProcessedMesh[] meshes;
     private final int[] roots;
-    private final boolean staticMesh;
 
-    public ProcessedAsset(ProcessedMesh[] meshes, int[] roots, boolean staticMesh) {
+    public ProcessedAsset(ProcessedMesh[] meshes, int[] roots) {
         this.meshes = meshes;
         this.roots = roots;
-        this.staticMesh = staticMesh;
     }
 
     private PrimitiveMode mode = PrimitiveMode.TRIANGLES;

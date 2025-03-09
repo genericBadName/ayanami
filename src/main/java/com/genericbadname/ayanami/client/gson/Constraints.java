@@ -6,8 +6,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 public class Constraints {
-    public static final Predicate<Integer> nonZero = i -> i >= 0;
-    public static final Predicate<Integer[]> allNonZero = arr -> {
+    public static final Predicate<Integer> nonNegative = i -> i >= 0;
+    public static final Predicate<Integer[]> allNonNegative = arr -> {
         for (Integer integer : arr) {
             if (integer < 0) return false;
         }

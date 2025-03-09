@@ -44,11 +44,11 @@ public record Accessor(
             JsonObject object = json.getAsJsonObject();
 
             Integer bufferView = ElementDeserializer.integer("bufferView")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .apply(object);
             int byteOffset = ElementDeserializer.integer("byteOffset")
                     .defaultValue(0)
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .apply(object);
             ComponentType componentType = ElementDeserializer.enumInt("componentType", ComponentType::fromMagic)
                     .required()
@@ -137,11 +137,11 @@ public record Accessor(
 
                 int bufferView = ElementDeserializer.integer("bufferView")
                         .required()
-                        .constraint(Constraints.nonZero)
+                        .constraint(Constraints.nonNegative)
                         .apply(object);
                 int byteOffset = ElementDeserializer.integer("byteOffset")
                         .defaultValue(0)
-                        .constraint(Constraints.nonZero)
+                        .constraint(Constraints.nonNegative)
                         .apply(object);
                 ComponentType componentType = ElementDeserializer.enumInt("componentType", i -> ComponentType.values()[i])
                         .required()
@@ -177,11 +177,11 @@ public record Accessor(
 
                 int bufferView = ElementDeserializer.integer("bufferView")
                         .required()
-                        .constraint(Constraints.nonZero)
+                        .constraint(Constraints.nonNegative)
                         .apply(object);
                 int byteOffset = ElementDeserializer.integer("byteOffset")
                         .defaultValue(0)
-                        .constraint(Constraints.nonZero)
+                        .constraint(Constraints.nonNegative)
                         .apply(object);
                 JsonObject extensions = ElementDeserializer.object("extensions").apply(object);
                 JsonObject extras = ElementDeserializer.object("extras").apply(object);

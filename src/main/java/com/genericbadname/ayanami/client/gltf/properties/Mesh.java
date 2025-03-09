@@ -74,10 +74,10 @@ public record Mesh(
                         .required()
                         .apply(object);
                 Integer indices = ElementDeserializer.integer("indices")
-                        .constraint(Constraints.nonZero)
+                        .constraint(Constraints.nonNegative)
                         .apply(object);
                 Integer material = ElementDeserializer.integer("material")
-                        .constraint(Constraints.nonZero)
+                        .constraint(Constraints.nonNegative)
                         .apply(object);
                 PrimitiveMode mode = ElementDeserializer.enumInt("mode", i -> PrimitiveMode.values()[i])
                         .defaultValue(PrimitiveMode.TRIANGLES)

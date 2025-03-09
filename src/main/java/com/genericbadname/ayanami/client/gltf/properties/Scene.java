@@ -24,7 +24,7 @@ public record Scene(
             Integer[] nodes = ElementDeserializer.array("nodes", JsonElement::getAsInt, Integer[]::new)
                     .constraint(arr -> arr.length >= 1)
                     .constraint(Constraints.allUnique)
-                    .constraint(Constraints.allNonZero)
+                    .constraint(Constraints.allNonNegative)
                     .apply(object);
             String name = ElementDeserializer.string("name").apply(object);
             JsonObject extensions = ElementDeserializer.object("extensions").apply(object);

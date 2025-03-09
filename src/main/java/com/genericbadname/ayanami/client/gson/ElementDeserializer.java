@@ -79,6 +79,16 @@ public class ElementDeserializer<T> {
         return new ElementDeserializer<>(element, e -> enumConverter.apply(e.getAsInt()));
     }
 
+    public static <T> ElementDeserializer<T> enumString(String element, Function<String, T> enumConverter) {
+        return new ElementDeserializer<>(element, e -> {
+            try {
+                return enumConverter.apply(e.getAsString().toUpperCase());
+            } catch(IllegalArgumentException error) {
+                return null;
+            }
+        });
+    }
+
     public static <T> ElementDeserializer<T> defined(String element, Class<T> clazz) {
         return new ElementDeserializer<>(element, e -> GltfAsset.ASSET_GSON.fromJson(e, clazz));
     }

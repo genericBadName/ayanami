@@ -45,17 +45,17 @@ public record Node(
         return (json, type, context) -> {
             JsonObject object = json.getAsJsonObject();
 
-            Integer camera = ElementDeserializer.integer("camera").constraint(Constraints.nonZero).apply(object);
+            Integer camera = ElementDeserializer.integer("camera").constraint(Constraints.nonNegative).apply(object);
             Integer[] children = ElementDeserializer.array("children", JsonElement::getAsInt, Integer[]::new)
                     .constraint(arr -> arr.length >= 1)
                     .constraint(Constraints.allUnique)
-                    .constraint(Constraints.allNonZero)
+                    .constraint(Constraints.allNonNegative)
                     .apply(object);
             Integer mesh = ElementDeserializer.integer("mesh")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .apply(object);
             Integer skin = ElementDeserializer.integer("skin")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .constraint(integer -> mesh != null)
                     .apply(object);
             Double[] matrixArray = ElementDeserializer.array("matrix", JsonElement::getAsDouble, Double[]::new)

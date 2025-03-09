@@ -43,7 +43,7 @@ public class AssetProcesser {
         loadedBuffers = new Int2ObjectArrayMap<>();
         processAll();
 
-        return new ProcessedAsset(processedMeshes, roots, true);
+        return new ProcessedAsset(processedMeshes, roots);
     }
 
     private ByteBuffer getBuffer(int index) {

@@ -31,7 +31,7 @@ public record ImageData(
             String mimeType = ElementDeserializer.string("mimeType")
                     .apply(object);
             Integer bufferView = ElementDeserializer.integer("bufferView")
-                    .constraint(Constraints.nonZero)
+                    .constraint(Constraints.nonNegative)
                     .constraint(i -> uri == null)
                     .constraint(i -> mimeType != null)
                     .apply(object);
