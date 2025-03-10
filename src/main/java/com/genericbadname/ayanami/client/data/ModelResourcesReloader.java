@@ -116,34 +116,44 @@ public class ModelResourcesReloader implements SimpleResourceReloadListener<Mode
 
     @Override
     public CompletableFuture<Void> apply(ModelResources modelResources, ResourceManager resourceManager, Profiler profiler, Executor executor) {
-        return CompletableFuture.runAsync(() -> {
-            // process loaded resources
-            Ayanami.LOGGER.info("Loaded {} external buffers", modelResources.externalBuffers().size());
-            ClientResourceStorage.externalBuffers.clear();
-            ClientResourceStorage.externalBuffers.putAll(modelResources.externalBuffers());
+        // setup async asset processors
+        Object2ObjectArrayMap<Identifier, GltfAsset> assets = modelResources.assets();
+        CompletableFuture<?>[] processors = new CompletableFuture<?>[assets.size()];
 
-            Ayanami.LOGGER.info("Loaded {} model assets", modelResources.assets().size());
-            ClientResourceStorage.modelAssets.clear();
-
-            for (Object2ObjectMap.Entry<Identifier, GltfAsset> entry : modelResources.assets().object2ObjectEntrySet()) {
+        int i = 0;
+        for (Object2ObjectMap.Entry<Identifier, GltfAsset> entry : assets.object2ObjectEntrySet()) {
+            processors[i] = CompletableFuture.runAsync(() -> {
                 ProcessedAsset asset = new AssetProcesser(entry.getKey(), entry.getValue()).process();
                 if (asset != null) ClientResourceStorage.modelAssets.put(entry.getKey().hashCode(), asset);
-            }
+            }, executor);
+        }
 
-            Ayanami.LOGGER.info("Processed {} model assets", ClientResourceStorage.modelAssets.size());
+        // synchronously apply resources
+        Ayanami.LOGGER.info("Loaded {} external buffers", modelResources.externalBuffers().size());
+        ClientResourceStorage.externalBuffers.clear();
+        ClientResourceStorage.externalBuffers.putAll(modelResources.externalBuffers());
 
-            Ayanami.LOGGER.info("Loaded {} display settings", modelResources.displaySettings().size());
-            ClientResourceStorage.displaySettings.clear();
-            ClientResourceStorage.displaySettings.putAll(modelResources.displaySettings());
+        Ayanami.LOGGER.info("Loaded {} model assets", assets.size());
+        ClientResourceStorage.modelAssets.clear();
 
-            // reload renderers
+        Ayanami.LOGGER.info("Loaded {} display settings", modelResources.displaySettings().size());
+        ClientResourceStorage.displaySettings.clear();
+        ClientResourceStorage.displaySettings.putAll(modelResources.displaySettings());
+
+        // asynchronously process assets
+        return CompletableFuture.allOf(processors).thenRunAsync(() -> {
+            Ayanami.LOGGER.info("Processed {} model assets", assets.size());
+
+            // reload item renderers afterwards
             for (ItemConvertible item : ClientResourceStorage.itemRenderers) {
                 Object renderer = BuiltinItemRendererRegistry.INSTANCE.get(item);
                 if (renderer instanceof ReiItemRenderer) {
                     ((ReiItemRenderer) renderer).reload();
                 }
             }
-        }, executor);
+
+            Ayanami.LOGGER.info("Reloaded {} item renderers", ClientResourceStorage.itemRenderers.size());
+        });
     }
 
     @Override
