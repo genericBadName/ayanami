@@ -19,7 +19,7 @@ public record GltfAsset(
     Material[] materials,
     Sampler[] samplers,
     Texture[] textures,
-    Skin[] skins, // TODO: implement skinning/animation functionality
+    Skin[] skins, // TODO: implement skinning functionality
     Animation[] animations
 
 ) {

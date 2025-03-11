@@ -4,5 +4,5 @@ public enum TargetPath {
     TRANSLATION,
     ROTATION,
     SCALE,
-    WEIGHTS
+    WEIGHTS;
 }

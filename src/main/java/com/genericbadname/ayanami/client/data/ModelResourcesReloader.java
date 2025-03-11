@@ -5,14 +5,20 @@ import com.genericbadname.ayanami.client.display.DisplaySettings;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.processing.AssetProcesser;
 import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
+import com.genericbadname.ayanami.client.renderer.ReiEntityRenderer;
 import com.genericbadname.ayanami.client.renderer.ReiItemRenderer;
+import com.genericbadname.ayanami.mixin.EntityRendererAccessor;
 import com.google.gson.stream.JsonReader;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.fabricmc.fabric.api.resource.SimpleResourceReloadListener;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
+import net.minecraft.entity.EntityType;
 import net.minecraft.item.ItemConvertible;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
@@ -26,7 +32,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.EnumMap;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
@@ -118,14 +124,16 @@ public class ModelResourcesReloader implements SimpleResourceReloadListener<Mode
     public CompletableFuture<Void> apply(ModelResources modelResources, ResourceManager resourceManager, Profiler profiler, Executor executor) {
         // setup async asset processors
         Object2ObjectArrayMap<Identifier, GltfAsset> assets = modelResources.assets();
-        CompletableFuture<?>[] processors = new CompletableFuture<?>[assets.size()];
+        List<CompletableFuture<Void>> processors = new ArrayList<>();
 
-        int i = 0;
         for (Object2ObjectMap.Entry<Identifier, GltfAsset> entry : assets.object2ObjectEntrySet()) {
-            processors[i] = CompletableFuture.runAsync(() -> {
-                ProcessedAsset asset = new AssetProcesser(entry.getKey(), entry.getValue()).process();
-                if (asset != null) ClientResourceStorage.modelAssets.put(entry.getKey().hashCode(), asset);
-            }, executor);
+            processors.add(
+                    CompletableFuture.runAsync(() -> {
+                        ProcessedAsset asset = new AssetProcesser(entry.getKey(), entry.getValue()).process();
+                        if (asset != null) ClientResourceStorage.modelAssets.put(entry.getKey().hashCode(), asset);
+                        }, executor
+                    )
+            );
         }
 
         // synchronously apply resources
@@ -141,19 +149,34 @@ public class ModelResourcesReloader implements SimpleResourceReloadListener<Mode
         ClientResourceStorage.displaySettings.putAll(modelResources.displaySettings());
 
         // asynchronously process assets
-        return CompletableFuture.allOf(processors).thenRunAsync(() -> {
+        return CompletableFuture.allOf(processors.toArray(new CompletableFuture[0])).thenRunAsync(() -> {
             Ayanami.LOGGER.info("Processed {} model assets", assets.size());
 
-            // reload item renderers afterwards
+            // reload item renderers
             for (ItemConvertible item : ClientResourceStorage.itemRenderers) {
                 Object renderer = BuiltinItemRendererRegistry.INSTANCE.get(item);
                 if (renderer instanceof ReiItemRenderer) {
                     ((ReiItemRenderer) renderer).reload();
                 }
             }
-
             Ayanami.LOGGER.info("Reloaded {} item renderers", ClientResourceStorage.itemRenderers.size());
-        });
+
+            // reload entity renderers
+            Set<EntityType<?>> reiRenderers = ((EntityRendererAccessor)MinecraftClient.getInstance().getEntityRenderDispatcher())
+                    .getRenderers()
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> entry.getValue() instanceof ReiEntityRenderer<?>)
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toSet());
+
+            for (EntityType<?> type : reiRenderers) {
+                // atrocious. i care not.
+                ((ReiEntityRenderer<?>)((EntityRendererAccessor)MinecraftClient.getInstance().getEntityRenderDispatcher()).getRenderers().get(type)).reload();
+            }
+            Ayanami.LOGGER.info("Reloaded {} entity renderers", reiRenderers.size());
+
+        }, executor);
     }
 
     @Override

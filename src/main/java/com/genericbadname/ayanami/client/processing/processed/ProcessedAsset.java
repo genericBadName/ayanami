@@ -1,6 +1,7 @@
 package com.genericbadname.ayanami.client.processing.processed;
 
 import com.genericbadname.ayanami.client.gltf.properties.types.PrimitiveMode;
+import com.genericbadname.ayanami.client.processing.processed.animation.ProcessedAnimation;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormats;
@@ -12,10 +13,12 @@ import org.joml.Matrix4f;
 public class ProcessedAsset {
     private final ProcessedMesh[] meshes;
     private final int[] roots;
+    private final ProcessedAnimation[] animations;
 
-    public ProcessedAsset(ProcessedMesh[] meshes, int[] roots) {
+    public ProcessedAsset(ProcessedMesh[] meshes, int[] roots, ProcessedAnimation[] animations) {
         this.meshes = meshes;
         this.roots = roots;
+        this.animations = animations;
     }
 
     private PrimitiveMode mode = PrimitiveMode.TRIANGLES;

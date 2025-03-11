@@ -30,8 +30,6 @@ public abstract class ReiEntityRenderer<T extends Entity> extends EntityRenderer
         this.modelId = modelId;
         this.textureLocation = textureLocation;
         this.modelOffset = modelOffset;
-
-        reload();
     }
 
     @Override

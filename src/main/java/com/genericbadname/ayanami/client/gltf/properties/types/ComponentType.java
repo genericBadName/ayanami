@@ -4,17 +4,19 @@ import java.nio.ByteBuffer;
 import java.util.function.Function;
 
 public enum ComponentType {
-    BYTE(ByteBuffer::get),
-    UNSIGNED_BYTE(ByteBuffer::get),
-    SHORT(ByteBuffer::getShort),
-    UNSIGNED_SHORT(ByteBuffer::getShort),
-    INT(ByteBuffer::getInt),
-    UNSIGNED_INT(ByteBuffer::getInt),
-    FLOAT(ByteBuffer::getFloat);
+    BYTE(ByteBuffer::get, 1),
+    UNSIGNED_BYTE(ByteBuffer::get, 1),
+    SHORT(ByteBuffer::getShort, 2),
+    UNSIGNED_SHORT(ByteBuffer::getShort, 2),
+    INT(ByteBuffer::getInt, 4),
+    UNSIGNED_INT(ByteBuffer::getInt, 4),
+    FLOAT(ByteBuffer::getFloat, 4);
 
     public final Function<ByteBuffer, Number> converter;
-    ComponentType(Function<ByteBuffer, Number> converter) {
+    public final int bytes;
+    ComponentType(Function<ByteBuffer, Number> converter, int bytes) {
         this.converter = converter;
+        this.bytes = bytes;
     }
 
     public static ComponentType fromMagic(int magic) {

@@ -3,10 +3,11 @@ package com.genericbadname.ayanami.client.processing;
 import com.genericbadname.ayanami.client.data.ClientResourceStorage;
 import com.genericbadname.ayanami.client.gltf.GltfAsset;
 import com.genericbadname.ayanami.client.gltf.properties.*;
-import com.genericbadname.ayanami.client.processing.processed.ProcessedAsset;
-import com.genericbadname.ayanami.client.processing.processed.ProcessedMesh;
-import com.genericbadname.ayanami.client.processing.processed.ProcessedPrimitive;
-import com.genericbadname.ayanami.client.processing.processed.Vertex;
+import com.genericbadname.ayanami.client.gltf.properties.types.AccessorType;
+import com.genericbadname.ayanami.client.processing.processed.*;
+import com.genericbadname.ayanami.client.processing.processed.animation.NodeChannel;
+import com.genericbadname.ayanami.client.processing.processed.animation.ProcessedAnimation;
+import com.genericbadname.ayanami.client.processing.processed.animation.SamplerData;
 import com.github.ooxi.jdatauri.DataUri;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -14,6 +15,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4d;
+import org.joml.Vector4d;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -26,9 +28,8 @@ public class AssetProcesser {
     private Scene activeScene;
     private Int2ObjectMap<ByteBuffer> loadedBuffers;
     private ProcessedMesh[] processedMeshes;
+    private ProcessedAnimation[] processedAnimations;
     private int[] roots;
-
-    private static final Matrix4d IDENTITY = new Matrix4d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 
     public AssetProcesser(Identifier modelLocation, GltfAsset model) {
         this.modelLocation = modelLocation;
@@ -41,9 +42,10 @@ public class AssetProcesser {
 
         activeScene = model.scenes()[model.scene()];
         loadedBuffers = new Int2ObjectArrayMap<>();
-        processAll();
+        processMeshes();
+        processAnimations();
 
-        return new ProcessedAsset(processedMeshes, roots);
+        return new ProcessedAsset(processedMeshes, roots, processedAnimations);
     }
 
     private ByteBuffer getBuffer(int index) {
@@ -66,7 +68,7 @@ public class AssetProcesser {
         return loadedBuffers.get(index);
     }
 
-    private void processAll() {
+    private void processMeshes() {
         if (activeScene == null) return;
         if (activeScene.nodes() == null) return;
         if (model.nodes() == null) return;
@@ -75,13 +77,13 @@ public class AssetProcesser {
         processedMeshes = new ProcessedMesh[model.nodes().length];
 
         for (int i=0;i<processedMeshes.length;i++) {
-            processMesh(model.nodes()[i], i);
+            processChildMesh(model.nodes()[i], i);
         }
     }
 
-    private void processMesh(Node self, int selfIndex) {
+    private void processChildMesh(Node self, int selfIndex) {
         if (self.mesh() == null) {
-            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), new ObjectArrayList<>(), IDENTITY);
+            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), new ObjectArrayList<>(), new Matrix4d());
             return;
         }
 
@@ -100,7 +102,7 @@ public class AssetProcesser {
 
                 // add processed attributes
                 for (int e = 0; e < accessor.count(); e++) {
-                    double[] components = new double[accessor.count()];
+                    double[] components = new double[accessor.type().components];
                     int valueStart = viewBuffer.position();
                     for (int c = 0; c < accessor.type().components; c++) {
                         components[c] = accessor.componentType().converter.apply(viewBuffer).doubleValue();
@@ -139,5 +141,79 @@ public class AssetProcesser {
         Matrix4d transform = new Matrix4d().translationRotateScale(self.translation(), self.rotation(), self.scale());
 
         processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, transform);
+    }
+
+    private void processAnimations() {
+        if (model.animations() == null) return;
+
+        Animation[] rawAnimations = model.animations();
+        processedAnimations = new ProcessedAnimation[rawAnimations.length];
+
+        for (int i=0;i< rawAnimations.length;i++) {
+            processAnimation(rawAnimations[i], i);
+        }
+    }
+
+    private void processAnimation(Animation animation, int animationNum) {
+        Int2ObjectMap<NodeChannel> nodeChannels = new Int2ObjectArrayMap<>();
+        ObjectList<SamplerData> samplers = new ObjectArrayList<>();
+
+        // get raw sampler data
+        for (Animation.Sampler sampler : animation.samplers()) {
+            // get time data
+            Accessor timeAccessor = model.accessors()[sampler.input()];
+            BufferView timeView = model.bufferViews()[timeAccessor.bufferView()];
+            ByteBuffer timeBuffer = getBuffer(timeView.buffer()).position(timeView.byteOffset() + timeAccessor.byteOffset());
+            double[] times = new double[timeAccessor.count()];
+
+            for (int e = 0; e < timeAccessor.count(); e++) {
+                times[e] = timeAccessor.componentType().converter.apply(timeBuffer).doubleValue();
+            }
+
+            // get output change data
+            Accessor dataAccessor = model.accessors()[sampler.output()];
+            BufferView dataView = model.bufferViews()[dataAccessor.bufferView()];
+            ByteBuffer dataBuffer = getBuffer(timeView.buffer()).position(dataView.byteOffset() + dataAccessor.byteOffset());
+            Vector4d[] vector4ds = new Vector4d[dataAccessor.count()]; // used to handle multiple types of vector data (TS or R)
+
+            for (int e = 0; e < dataAccessor.count(); e++) {
+                double[] components = new double[dataAccessor.type().components];
+                int valueStart = dataBuffer.position();
+                for (int c = 0; c < dataAccessor.type().components; c++) {
+                    components[c] = dataAccessor.componentType().converter.apply(dataBuffer).doubleValue();
+                }
+
+                if (dataView.byteStride() != null) dataBuffer.position(valueStart + dataView.byteStride());
+                if (dataAccessor.type().equals(AccessorType.VEC3)) {
+                    vector4ds[e] = new Vector4d(components[0], components[1], components[2], 0);
+                } else {
+                    vector4ds[e] = new Vector4d(components[0], components[1], components[2], components[3]);
+                }
+            }
+
+            samplers.add(new SamplerData(times, vector4ds, sampler.interpolation()));
+        }
+
+        // process sampler data in context of channels
+        for (Animation.Channel channel : animation.channels()) {
+            int node = channel.target().node();
+            if (!nodeChannels.containsKey(node)) nodeChannels.put(node, new NodeChannel());
+
+            SamplerData samplerData = samplers.get(channel.sampler());
+            switch (channel.target().path()) {
+                case TRANSLATION -> nodeChannels.get(node).addTranslation(samplerData.times(), samplerData.vector4ds(), samplerData.interpolation());
+                case ROTATION -> nodeChannels.get(node).addRotation(samplerData.times(), samplerData.vector4ds(), samplerData.interpolation());
+                case SCALE -> nodeChannels.get(node).addScale(samplerData.times(), samplerData.vector4ds(), samplerData.interpolation());
+                case WEIGHTS -> nodeChannels.get(node).addWeight(samplerData.times(), samplerData.vector4ds(), samplerData.interpolation());
+            }
+        }
+
+        // calculate total animation runtime
+        double largest = 0;
+        for (NodeChannel nc : nodeChannels.values()) {
+            if (nc.getLastTime() > largest) largest = nc.getLastTime();
+        }
+
+        processedAnimations[animationNum] = new ProcessedAnimation(animation.name(), nodeChannels, largest);
     }
 }
