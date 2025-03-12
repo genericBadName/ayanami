@@ -50,7 +50,7 @@ public abstract class ReiItemRenderer implements BuiltinItemRendererRegistry.Dyn
         RenderSystem.enableBlend();
 
         // render and cleanup
-        model.renderFromRoots(transformationMatrix);
+        //ReiRenderer.renderFromRoots(transformationMatrix, model, -1);
         matrices.pop();
     }
 

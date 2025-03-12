@@ -4,7 +4,7 @@ import com.genericbadname.ayanami.client.gltf.properties.types.Interpolation;
 import org.joml.Vector4d;
 
 public record Vector4Frame(
-        double time,
+        double timestamp,
         Vector4d vector,
         Interpolation interpolation
 ) {

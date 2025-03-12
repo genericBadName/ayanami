@@ -37,15 +37,18 @@ public class AssetProcesser {
     }
 
     public ProcessedAsset process() {
-        if (model.scenes() == null) return null;
-        if (model.scene() == null) return null;
+        if (model.scenes() == null || model.scene() == null || model.nodes() == null) return null;
 
         activeScene = model.scenes()[model.scene()];
         loadedBuffers = new Int2ObjectArrayMap<>();
+
+        if (activeScene == null) return null;
+        if (activeScene.nodes() == null) return null;
+
         processMeshes();
         processAnimations();
 
-        return new ProcessedAsset(processedMeshes, roots, processedAnimations);
+        return new ProcessedAsset(processedMeshes, roots, processedAnimations, model.nodes().length);
     }
 
     private ByteBuffer getBuffer(int index) {
@@ -69,10 +72,6 @@ public class AssetProcesser {
     }
 
     private void processMeshes() {
-        if (activeScene == null) return;
-        if (activeScene.nodes() == null) return;
-        if (model.nodes() == null) return;
-
         roots = Arrays.stream(activeScene.nodes()).mapToInt(Integer::intValue).toArray();
         processedMeshes = new ProcessedMesh[model.nodes().length];
 
@@ -160,7 +159,7 @@ public class AssetProcesser {
 
         // get raw sampler data
         for (Animation.Sampler sampler : animation.samplers()) {
-            // get time data
+            // get timestamp data
             Accessor timeAccessor = model.accessors()[sampler.input()];
             BufferView timeView = model.bufferViews()[timeAccessor.bufferView()];
             ByteBuffer timeBuffer = getBuffer(timeView.buffer()).position(timeView.byteOffset() + timeAccessor.byteOffset());
@@ -173,7 +172,7 @@ public class AssetProcesser {
             // get output change data
             Accessor dataAccessor = model.accessors()[sampler.output()];
             BufferView dataView = model.bufferViews()[dataAccessor.bufferView()];
-            ByteBuffer dataBuffer = getBuffer(timeView.buffer()).position(dataView.byteOffset() + dataAccessor.byteOffset());
+            ByteBuffer dataBuffer = getBuffer(dataView.buffer()).position(dataView.byteOffset() + dataAccessor.byteOffset());
             Vector4d[] vector4ds = new Vector4d[dataAccessor.count()]; // used to handle multiple types of vector data (TS or R)
 
             for (int e = 0; e < dataAccessor.count(); e++) {
@@ -186,7 +185,7 @@ public class AssetProcesser {
                 if (dataView.byteStride() != null) dataBuffer.position(valueStart + dataView.byteStride());
                 if (dataAccessor.type().equals(AccessorType.VEC3)) {
                     vector4ds[e] = new Vector4d(components[0], components[1], components[2], 0);
-                } else {
+                } else if (dataAccessor.type().equals(AccessorType.VEC4)){
                     vector4ds[e] = new Vector4d(components[0], components[1], components[2], components[3]);
                 }
             }
@@ -208,10 +207,11 @@ public class AssetProcesser {
             }
         }
 
-        // calculate total animation runtime
+        // calculate total animation runtime and sort
         double largest = 0;
         for (NodeChannel nc : nodeChannels.values()) {
             if (nc.getLastTime() > largest) largest = nc.getLastTime();
+            nc.sortAll();
         }
 
         processedAnimations[animationNum] = new ProcessedAnimation(animation.name(), nodeChannels, largest);

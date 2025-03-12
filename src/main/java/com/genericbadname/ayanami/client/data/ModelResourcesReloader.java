@@ -65,7 +65,7 @@ public class ModelResourcesReloader implements SimpleResourceReloadListener<Mode
                         .filter(pair -> pair.getRight() != null)
                         .collect(Collectors.toMap((pair) -> Ayanami.trim(pair.getLeft(), ".json").hashCode(), Pair::getRight, (t1, t2) -> t1, Int2ObjectArrayMap::new)), executor);
 
-        // load all resources (.gltf, .bin, .json) at the same time, to guarantee that the application process
+        // load all resources (.gltf, .bin, .json) at the same timestamp, to guarantee that the application process
         // doesn't accidentally try to read a nonexistent buffer
         return CompletableFuture.allOf(assetLoader, externalBufferLoader, displaySettingsLoader)
                 .thenApplyAsync(v -> {

@@ -4,7 +4,7 @@ import com.genericbadname.ayanami.client.gltf.properties.types.Interpolation;
 import org.joml.Quaterniond;
 
 public record QuaternionFrame(
-    double time,
+    double timestamp,
     Quaterniond quaternion,
     Interpolation interpolation
 ) {
