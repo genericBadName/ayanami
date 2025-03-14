@@ -9,9 +9,13 @@ import com.genericbadname.ayanami.client.processing.processed.animation.NodeChan
 import com.genericbadname.ayanami.client.processing.processed.animation.ProcessedAnimation;
 import com.genericbadname.ayanami.client.processing.processed.animation.SamplerData;
 import com.github.ooxi.jdatauri.DataUri;
+import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectIntImmutablePair;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4d;
@@ -27,9 +31,12 @@ public class AssetProcesser {
     private final GltfAsset model;
     private Scene activeScene;
     private Int2ObjectMap<ByteBuffer> loadedBuffers;
-    private ProcessedMesh[] processedMeshes;
+    private MeshNode[] meshNodes;
+    private Int2ObjectMap<Int2ObjectMap<JointNode>> skeletonNodes;
     private ProcessedAnimation[] processedAnimations;
+
     private int[] roots;
+    private int[] skeletonRoots;
 
     public AssetProcesser(Identifier modelLocation, GltfAsset model) {
         this.modelLocation = modelLocation;
@@ -47,15 +54,16 @@ public class AssetProcesser {
 
         processMeshes();
         processAnimations();
+        processSkins();
 
-        return new ProcessedAsset(processedMeshes, roots, processedAnimations, model.nodes().length);
+        return new ProcessedAsset(roots, meshNodes.length, meshNodes, skeletonNodes, processedAnimations);
     }
 
     private ByteBuffer getBuffer(int index) {
         if (!loadedBuffers.containsKey(index)) {
             ByteBuffer buffer = null;
             String uri = model.buffers()[index].uri();
-            
+
             if (uri.startsWith("data:application/octet-stream")) {
                 buffer = ByteBuffer.wrap(DataUri.parse(uri, Charset.defaultCharset()).getData()).order(ByteOrder.LITTLE_ENDIAN);
             } else if (uri.endsWith(".bin")) {
@@ -73,16 +81,16 @@ public class AssetProcesser {
 
     private void processMeshes() {
         roots = Arrays.stream(activeScene.nodes()).mapToInt(Integer::intValue).toArray();
-        processedMeshes = new ProcessedMesh[model.nodes().length];
+        meshNodes = new MeshNode[model.nodes().length];
 
-        for (int i=0;i<processedMeshes.length;i++) {
+        for (int i = 0; i< meshNodes.length; i++) {
             processChildMesh(model.nodes()[i], i);
         }
     }
 
     private void processChildMesh(Node self, int selfIndex) {
         if (self.mesh() == null) {
-            processedMeshes[selfIndex] = new ProcessedMesh(self.children(), new ObjectArrayList<>(), new Matrix4d());
+            meshNodes[selfIndex] = new MeshNode(self.children(), new ObjectArrayList<>(), new Matrix4d());
             return;
         }
 
@@ -108,7 +116,7 @@ public class AssetProcesser {
                     }
 
                     if (view.byteStride() != null) viewBuffer.position(valueStart + view.byteStride());
-                    processedAttributes.add(attribute.getKey(), components);
+                    processedAttributes.add(attribute.getKey(), components, e);
                 }
             }
 
@@ -122,14 +130,14 @@ public class AssetProcesser {
                 List<Vertex> vertices = new ArrayList<>();
                 for (int i = 0; i < accessor.count(); i++) {
                     int index = accessor.componentType().converter.apply(viewBuffer).intValue();
-                    vertices.add(new Vertex(processedAttributes.positions().get(index), processedAttributes.normals().get(index), processedAttributes.texcoords().get(index)));
+                    vertices.add(getVertex(processedAttributes, index));
                 }
 
                 processedPrimitives.add(new ProcessedPrimitive(vertices, primitive.mode()));
             } else {
                 List<Vertex> vertices = new ArrayList<>();
                 for (int i = 0; i < processedAttributes.positions().size(); i++) {
-                    vertices.add(new Vertex(processedAttributes.positions().get(i), processedAttributes.normals().get(i), processedAttributes.texcoords().get(i)));
+                    vertices.add(getVertex(processedAttributes, i));
                 }
 
                 processedPrimitives.add(new ProcessedPrimitive(vertices, primitive.mode()));
@@ -139,7 +147,17 @@ public class AssetProcesser {
         // add processed mesh
         Matrix4d transform = new Matrix4d().translationRotateScale(self.translation(), self.rotation(), self.scale());
 
-        processedMeshes[selfIndex] = new ProcessedMesh(self.children(), processedPrimitives, transform);
+        meshNodes[selfIndex] = new MeshNode(self.children(), processedPrimitives, transform);
+    }
+
+    private Vertex getVertex(MeshAttributes processedAttributes, int index) {
+        return new Vertex(
+                processedAttributes.positions().get(index),
+                processedAttributes.normals().get(index),
+                processedAttributes.texcoords().get(index),
+                processedAttributes.joints().get(index),
+                processedAttributes.weights().get(index)
+        );
     }
 
     private void processAnimations() {
@@ -215,5 +233,78 @@ public class AssetProcesser {
         }
 
         processedAnimations[animationNum] = new ProcessedAnimation(animation.name(), nodeChannels, largest);
+    }
+
+
+    Int2ObjectMap<Pair<Matrix4d, Integer>> currentTrackingBinds = new Int2ObjectArrayMap<>();
+    private void processSkins() {
+        if (model.skins() == null) return;
+        Skin[] skins = model.skins();
+
+        skeletonNodes = new Int2ObjectArrayMap<>();
+        skeletonRoots = new int[skins.length];
+
+        for (int s=0;s< skins.length;s++) {
+            Skin skin =  skins[s];
+
+            int[] jointNodes = skin.joints();
+            Matrix4d[] inverseBindMatrices = new Matrix4d[jointNodes.length];
+
+            if (skin.inverseBindMatrices() != null) {
+                // access data from the buffer
+                Accessor accessor = model.accessors()[skin.inverseBindMatrices()];
+                BufferView view = model.bufferViews()[accessor.bufferView()];
+                ByteBuffer viewBuffer = getBuffer(view.buffer()).position(view.byteOffset() + accessor.byteOffset());
+
+                // add processed attributes
+                for (int e = 0; e < accessor.count(); e++) {
+                    double[] components = new double[accessor.type().components];
+                    int valueStart = viewBuffer.position();
+                    for (int c = 0; c < accessor.type().components; c++) {
+                        components[c] = accessor.componentType().converter.apply(viewBuffer).doubleValue();
+                    }
+
+                    if (view.byteStride() != null) viewBuffer.position(valueStart + view.byteStride());
+                    inverseBindMatrices[e] = new Matrix4d().set(components);
+                }
+            } else {
+                Arrays.fill(inverseBindMatrices, new Matrix4d());
+            }
+
+            skeletonNodes.put(s, new Int2ObjectArrayMap<>());
+            currentTrackingBinds.clear();
+
+            for (int j=0;j<jointNodes.length;j++) {
+                currentTrackingBinds.put(jointNodes[j], new ObjectIntImmutablePair<>(inverseBindMatrices[j], j));
+            }
+
+            // recursively process skeleton afterwards
+            // just gonna assume skeleton exists. if it causes problems that can be changed later
+            skeletonRoots[s] = skin.skeleton();
+            processSkeleton(s, skin.skeleton(), new Matrix4d());
+        }
+    }
+
+    private void processSkeleton(int skin, int joint, Matrix4d parentTransform) {
+        Node self = model.nodes()[joint];
+        Matrix4d localTransform = new Matrix4d().translationRotateScale(self.translation(), self.rotation(), self.scale());
+        Matrix4d globalTransform = localTransform.mul(parentTransform, new Matrix4d());
+
+        if (self.children() == null) {
+            Pair<Matrix4d, Integer> pair = currentTrackingBinds.get(joint);
+            skeletonNodes.get(skin).put(pair.right().intValue(), new JointNode(null, pair.left(), globalTransform));
+        } else {
+            Integer[] jointChildren = Arrays.stream(self.children())
+                    .filter(child -> currentTrackingBinds.containsKey(child.intValue()))
+                    .toArray(Integer[]::new);
+
+            // TODO: change skeleton nodes to a map->array no map->map because apparently they're based on an array instead
+            Pair<Matrix4d, Integer> pair = currentTrackingBinds.get(joint);
+            skeletonNodes.get(skin).put(pair.right().intValue(), new JointNode(jointChildren, pair.left(), globalTransform));
+
+            for (Integer child : jointChildren) {
+                processSkeleton(skin, child, globalTransform);
+            }
+        }
     }
 }

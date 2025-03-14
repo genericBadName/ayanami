@@ -43,7 +43,7 @@ public class AnimationStateManager {
         currentTime += delta;
 
         if (currentTime >= currentAnimation.totalTime()) {
-            //reset();
+            reset();
         }
     }
 
@@ -54,13 +54,14 @@ public class AnimationStateManager {
             int currentFrameIndex = (node * 2);
             int nextFrameIndex = (node * 2) + 1;
 
-            updateVector3Channel(node, currentFrameIndex, nextFrameIndex, nc.getTranslations(), translationFrames, translationHeads, outputTranslations);
+            updateVec3Channel(node, currentFrameIndex, nextFrameIndex, nc.getTranslations(), translationFrames, translationHeads, outputTranslations);
             updateQuatChannel(node, currentFrameIndex, nextFrameIndex, nc.getRotations(), rotationFrames, rotationHeads, outputRotations);
-            updateVector3Channel(node, currentFrameIndex, nextFrameIndex, nc.getScales(), scaleFrames, scaleHeads, outputScales);
+            updateVec3Channel(node, currentFrameIndex, nextFrameIndex, nc.getScales(), scaleFrames, scaleHeads, outputScales);
+            updateVec4Channel(node, currentFrameIndex, nextFrameIndex, nc.getWeights(), weightFrames, weightHeads, outputWeights);
         }
     }
 
-    private void updateVector3Channel(int node, int startFrame, int endFrame, ObjectList<Vector3Frame> frameSrc, Vector3Frame[] frameBuffer, int[] heads, Vector3d[] outputValues) {
+    private void updateVec3Channel(int node, int startFrame, int endFrame, ObjectList<Vector3Frame> frameSrc, Vector3Frame[] frameBuffer, int[] heads, Vector3d[] outputValues) {
         int head = heads[node];
 
         // initialize buffer
@@ -94,6 +95,25 @@ public class AnimationStateManager {
         QuaternionFrame end = frameBuffer[endFrame];
 
         if (start != null && end != null) outputValues[node] = interpolateQuat(start, end);
+
+        if (hasNext(node, frameSrc, heads)) {
+            frameBuffer[startFrame] = frameBuffer[endFrame];
+            frameBuffer[endFrame] = next(node, frameSrc, heads);
+        }
+    }
+
+    private void updateVec4Channel(int node, int startFrame, int endFrame, ObjectList<Vector4Frame> frameSrc, Vector4Frame[] frameBuffer, int[] heads, Vector4d[] outputValues) {
+        int head = heads[node];
+
+        if (head == 0 && frameSrc.size() >= 2) {
+            frameBuffer[startFrame] = next(node, frameSrc, heads);
+            frameBuffer[endFrame] = next(node, frameSrc, heads);
+        }
+
+        Vector4Frame start = frameBuffer[startFrame];
+        Vector4Frame end = frameBuffer[endFrame];
+
+        if (start != null && end != null) outputValues[node] = interpolateVec4(start, end);
 
         if (hasNext(node, frameSrc, heads)) {
             frameBuffer[startFrame] = frameBuffer[endFrame];
@@ -179,6 +199,19 @@ public class AnimationStateManager {
             );
             case STEP -> qS;
             case CUBICSPLINE -> qS; // i am too lazy to implement this.
+        };
+    }
+
+    private Vector4d interpolateVec4(Vector4Frame start, Vector4Frame end) {
+        double tD = end.timestamp() - start.timestamp(); // duration
+        double t = (currentTime - start.timestamp()) / tD; // normalized interpolation factor
+        Vector4d vS = start.vector();
+        Vector4d vE = end.vector();
+
+        return switch(start.interpolation()) {
+            case LINEAR -> new Vector4d(((1 - t) * vS.x) + (t * vE.x), ((1 - t) * vS.y) + (t * vE.y), ((1 - t) * vS.z) + (t * vE.z), ((1 - t) * vS.w) + (t * vE.w));
+            case STEP -> vS;
+            case CUBICSPLINE -> vS; // i am too lazy to implement this.
         };
     }
 
